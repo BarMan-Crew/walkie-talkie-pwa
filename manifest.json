@@ -1,0 +1,58 @@
+{
+  "name": "Walkie-Talkie Pro",
+  "short_name": "Walkie",
+  "description": "Aplikacja do szybkiej komunikacji głosowej typu walkie-talkie",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#1e293b",
+  "orientation": "portrait",
+  "scope": "/",
+  "lang": "pl",
+  "dir": "ltr",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "screenshot.png",
+      "sizes": "540x720",
+      "type": "image/png"
+    }
+  ],
+  "categories": ["communication", "utilities"],
+  "shortcuts": [
+    {
+      "name": "Nowe połączenie",
+      "short_name": "Połącz",
+      "description": "Rozpocznij nowe połączenie",
+      "url": "/",
+      "icons": [
+        {
+          "src": "icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    }
+  ],
+  "share_target": {
+    "action": "/share",
+    "method": "GET",
+    "params": {
+      "title": "title",
+      "text": "text",
+      "url": "url"
+    }
+  }
+}

@@ -1,0 +1,774 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#1e293b">
+    <meta name="description" content="Walkie-Talkie - Aplikacja do szybkiej komunikacji głosowej">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Walkie-Talkie">
+    
+    <title>Walkie-Talkie Pro</title>
+    
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+    <link rel="icon" type="image/png" sizes="512x512" href="icon-512.png">
+    <link rel="apple-touch-icon" href="icon-192.png">
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <style>
+        * {
+            -webkit-tap-highlight-color: transparent;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            user-select: none;
+        }
+        
+        body {
+            overscroll-behavior: none;
+            position: fixed;
+            width: 100%;
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+        }
+        
+        .scrollbar-thin::-webkit-scrollbar {
+            width: 4px;
+        }
+        
+        .scrollbar-thin::-webkit-scrollbar-track {
+            background: rgba(51, 65, 85, 0.3);
+            border-radius: 10px;
+        }
+        
+        .scrollbar-thin::-webkit-scrollbar-thumb {
+            background: rgba(148, 163, 184, 0.5);
+            border-radius: 10px;
+        }
+        
+        .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+            background: rgba(148, 163, 184, 0.7);
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        .animate-pulse {
+            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        
+        button:active {
+            transform: scale(0.95);
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+    
+    <script>
+        // Ikony SVG
+        const icons = {
+            Mic: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg>',
+            Radio: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4.9 19.1C1 15.2 1 8.8 4.9 4.9"/><path d="M7.8 16.2c-2.3-2.3-2.3-6.1 0-8.5"/><circle cx="12" cy="12" r="2"/><path d="M16.2 7.8c2.3 2.3 2.3 6.1 0 8.5"/><path d="M19.1 4.9C23 8.8 23 15.1 19.1 19"/></svg>',
+            Users: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>',
+            Phone: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>',
+            Bluetooth: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m7 7 10 10-5 5V2l5 5L7 17"/></svg>',
+            Volume2: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>',
+            X: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>',
+            Download: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>',
+            Settings: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>',
+            AlertCircle: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></svg>',
+            CheckCircle: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>',
+            Wifi: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 13a10 10 0 0 1 14 0"/><path d="M8.5 16.5a5 5 0 0 1 7 0"/><path d="M2 8.82a15 15 0 0 1 20 0"/><line x1="12" x2="12.01" y1="20" y2="20"/></svg>'
+        };
+        
+        // Główna aplikacja
+        class WalkieTalkieApp {
+            constructor() {
+                this.state = {
+                    isConnected: false,
+                    isTalking: false,
+                    connectionMethod: null,
+                    friendPhone: '',
+                    friendId: '',
+                    myId: '',
+                    showSetup: true,
+                    messages: [],
+                    isListening: false,
+                    isRecording: false,
+                    micPermission: 'prompt',
+                    audioLevel: 0,
+                    recordingTime: 0,
+                    showSettings: false,
+                    volume: 100,
+                    quality: 'high',
+                    error: null
+                };
+                
+                this.mediaRecorder = null;
+                this.audioChunks = [];
+                this.audioContext = null;
+                this.analyser = null;
+                this.stream = null;
+                this.timer = null;
+                this.animationFrame = null;
+                
+                this.init();
+            }
+            
+            async init() {
+                this.generateUserId();
+                await this.checkMicrophonePermission();
+                this.render();
+                this.registerServiceWorker();
+            }
+            
+            generateUserId() {
+                let stored = localStorage.getItem('walkie_user_id');
+                if (!stored) {
+                    stored = 'USER_' + Math.random().toString(36).substr(2, 9).toUpperCase();
+                    localStorage.setItem('walkie_user_id', stored);
+                }
+                this.state.myId = stored;
+            }
+            
+            async checkMicrophonePermission() {
+                try {
+                    const result = await navigator.permissions.query({ name: 'microphone' });
+                    this.state.micPermission = result.state;
+                    result.addEventListener('change', () => {
+                        this.state.micPermission = result.state;
+                        this.render();
+                    });
+                } catch (err) {
+                    console.log('Permission API not supported');
+                }
+            }
+            
+            async requestMicrophoneAccess() {
+                try {
+                    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                    stream.getTracks().forEach(track => track.stop());
+                    this.state.micPermission = 'granted';
+                    this.state.error = null;
+                    this.render();
+                    return true;
+                } catch (err) {
+                    this.state.error = 'Brak dostępu do mikrofonu. Sprawdź ustawienia przeglądarki.';
+                    this.state.micPermission = 'denied';
+                    this.render();
+                    return false;
+                }
+            }
+            
+            setupAudioAnalyser(stream) {
+                this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                this.analyser = this.audioContext.createAnalyser();
+                const source = this.audioContext.createMediaStreamSource(stream);
+                source.connect(this.analyser);
+                this.analyser.fftSize = 256;
+                
+                const dataArray = new Uint8Array(this.analyser.frequencyBinCount);
+                
+                const updateLevel = () => {
+                    this.analyser.getByteFrequencyData(dataArray);
+                    const average = dataArray.reduce((a, b) => a + b) / dataArray.length;
+                    this.state.audioLevel = Math.min(100, (average / 128) * 100);
+                    this.render();
+                    this.animationFrame = requestAnimationFrame(updateLevel);
+                };
+                
+                updateLevel();
+            }
+            
+            async startRecording() {
+                if (!this.state.isConnected) {
+                    this.state.error = 'Najpierw połącz się z przyjaciółką!';
+                    this.render();
+                    return;
+                }
+                
+                if (this.state.micPermission === 'denied') {
+                    this.state.error = 'Brak uprawnień do mikrofonu. Odśwież stronę i zezwól na dostęp.';
+                    this.render();
+                    return;
+                }
+                
+                try {
+                    this.state.error = null;
+                    
+                    const constraints = {
+                        audio: {
+                            echoCancellation: true,
+                            noiseSuppression: true,
+                            autoGainControl: true,
+                            sampleRate: this.state.quality === 'high' ? 48000 : 16000
+                        }
+                    };
+                    
+                    const stream = await navigator.mediaDevices.getUserMedia(constraints);
+                    this.stream = stream;
+                    
+                    const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus') 
+                        ? 'audio/webm;codecs=opus' 
+                        : 'audio/webm';
+                    
+                    this.mediaRecorder = new MediaRecorder(stream, {
+                        mimeType: mimeType,
+                        audioBitsPerSecond: this.state.quality === 'high' ? 128000 : 64000
+                    });
+                    
+                    this.audioChunks = [];
+                    
+                    this.mediaRecorder.ondataavailable = (event) => {
+                        if (event.data.size > 0) {
+                            this.audioChunks.push(event.data);
+                        }
+                    };
+                    
+                    this.mediaRecorder.onstop = () => {
+                        const audioBlob = new Blob(this.audioChunks, { type: mimeType });
+                        const duration = this.state.recordingTime;
+                        
+                        if (this.stream) {
+                            this.stream.getTracks().forEach(track => track.stop());
+                        }
+                        if (this.audioContext) {
+                            this.audioContext.close();
+                        }
+                        if (this.animationFrame) {
+                            cancelAnimationFrame(this.animationFrame);
+                        }
+                        
+                        this.state.messages.push({ 
+                            type: 'sent', 
+                            text: `✓ Wysłano wiadomość głosową (${duration}s, ${(audioBlob.size / 1024).toFixed(1)} KB)`, 
+                            time: new Date().toLocaleTimeString()
+                        });
+                        
+                        this.render();
+                        
+                        setTimeout(() => {
+                            this.simulateIncomingMessage();
+                        }, 1500);
+                    };
+                    
+                    this.setupAudioAnalyser(stream);
+                    this.mediaRecorder.start();
+                    this.state.isTalking = true;
+                    this.state.isRecording = true;
+                    this.state.recordingTime = 0;
+                    
+                    this.timer = setInterval(() => {
+                        this.state.recordingTime++;
+                        if (this.state.recordingTime >= 60) {
+                            this.stopRecording();
+                        }
+                        this.render();
+                    }, 1000);
+                    
+                    this.state.messages.push({ 
+                        type: 'sending', 
+                        text: '🎙️ Nagrywanie rozpoczęte...', 
+                        time: new Date().toLocaleTimeString() 
+                    });
+                    
+                    this.render();
+                    
+                } catch (err) {
+                    console.error('Recording error:', err);
+                    if (err.name === 'NotAllowedError') {
+                        this.state.error = 'Odmówiono dostępu do mikrofonu. Sprawdź ustawienia przeglądarki.';
+                        this.state.micPermission = 'denied';
+                    } else if (err.name === 'NotFoundError') {
+                        this.state.error = 'Nie znaleziono mikrofonu. Podłącz mikrofon i spróbuj ponownie.';
+                    } else {
+                        this.state.error = 'Błąd nagrywania: ' + err.message;
+                    }
+                    this.render();
+                }
+            }
+            
+            stopRecording() {
+                if (this.mediaRecorder && this.state.isRecording) {
+                    this.mediaRecorder.stop();
+                    this.state.isTalking = false;
+                    this.state.isRecording = false;
+                    this.state.audioLevel = 0;
+                    
+                    if (this.timer) {
+                        clearInterval(this.timer);
+                    }
+                    
+                    this.render();
+                }
+            }
+            
+            simulateIncomingMessage() {
+                this.state.isListening = true;
+                this.state.messages.push({ 
+                    type: 'receiving', 
+                    text: '📻 Odbieram wiadomość...', 
+                    time: new Date().toLocaleTimeString() 
+                });
+                this.render();
+                
+                setTimeout(() => {
+                    this.state.isListening = false;
+                    this.state.messages.push({ 
+                        type: 'received', 
+                        text: '🎧 Wiadomość od przyjaciółki (3s)', 
+                        time: new Date().toLocaleTimeString() 
+                    });
+                    this.render();
+                }, 3000);
+            }
+            
+            connectViaPhone() {
+                if (!this.state.friendPhone || this.state.friendPhone.length < 9) {
+                    this.state.error = 'Podaj prawidłowy numer telefonu (min. 9 cyfr)';
+                    this.render();
+                    return;
+                }
+                
+                this.state.error = null;
+                const generatedId = 'PHONE_' + this.state.friendPhone.slice(-6);
+                this.state.friendId = generatedId;
+                this.state.connectionMethod = 'phone';
+                this.state.isConnected = true;
+                this.state.showSetup = false;
+                
+                this.state.messages = [{ 
+                    type: 'system', 
+                    text: `✓ Połączono z numerem: ${this.state.friendPhone}\nID sesji: ${generatedId}`, 
+                    time: new Date().toLocaleTimeString() 
+                }];
+                
+                this.render();
+            }
+            
+            connectViaBluetooth() {
+                this.state.error = null;
+                const generatedId = 'BT_' + Math.random().toString(36).substr(2, 6).toUpperCase();
+                this.state.friendId = generatedId;
+                this.state.connectionMethod = 'bluetooth';
+                this.state.isConnected = true;
+                this.state.showSetup = false;
+                
+                this.state.messages = [{ 
+                    type: 'system', 
+                    text: `✓ Połączono przez Bluetooth\nID sesji: ${generatedId}`, 
+                    time: new Date().toLocaleTimeString() 
+                }];
+                
+                this.render();
+            }
+            
+            disconnect() {
+                if (this.mediaRecorder && this.state.isRecording) {
+                    this.mediaRecorder.stop();
+                }
+                if (this.stream) {
+                    this.stream.getTracks().forEach(track => track.stop());
+                }
+                if (this.timer) {
+                    clearInterval(this.timer);
+                }
+                
+                this.state.isConnected = false;
+                this.state.connectionMethod = null;
+                this.state.showSetup = true;
+                this.state.messages = [];
+                this.state.friendPhone = '';
+                this.state.friendId = '';
+                this.state.isTalking = false;
+                this.state.isRecording = false;
+                this.state.recordingTime = 0;
+                this.state.audioLevel = 0;
+                this.state.error = null;
+                
+                this.render();
+            }
+            
+            clearMessages() {
+                this.state.messages = [];
+                this.render();
+            }
+            
+            installApp() {
+                const instructions = `📱 JAK ZAINSTALOWAĆ APLIKACJĘ:
+
+🍎 iPhone (Safari):
+1. Otwórz tę stronę w Safari
+2. Naciśnij przycisk "Udostępnij" ⬆️ (na dole ekranu)
+3. Przewiń w dół i wybierz "Dodaj do ekranu głównego"
+4. Zmień nazwę jeśli chcesz i naciśnij "Dodaj"
+
+🤖 Android (Chrome):
+1. Otwórz tę stronę w Chrome
+2. Naciśnij menu ⋮ (trzy kropki w prawym górnym rogu)
+3. Wybierz "Dodaj do ekranu głównego" lub "Zainstaluj aplikację"
+4. Potwierdź instalację
+
+✅ Po instalacji aplikacja będzie działać jak zwykła aplikacja mobilna!`;
+                alert(instructions);
+            }
+            
+            registerServiceWorker() {
+                if ('serviceWorker' in navigator) {
+                    navigator.serviceWorker.register('sw.js').catch(err => {
+                        console.log('Service Worker registration failed:', err);
+                    });
+                }
+            }
+            
+            render() {
+                const root = document.getElementById('root');
+                root.innerHTML = this.getHTML();
+                this.attachEventListeners();
+            }
+            
+            attachEventListeners() {
+                const connectPhoneBtn = document.getElementById('connectPhone');
+                if (connectPhoneBtn) {
+                    connectPhoneBtn.addEventListener('click', () => this.connectViaPhone());
+                }
+                
+                const connectBtBtn = document.getElementById('connectBluetooth');
+                if (connectBtBtn) {
+                    connectBtBtn.addEventListener('click', () => this.connectViaBluetooth());
+                }
+                
+                const disconnectBtn = document.getElementById('disconnect');
+                if (disconnectBtn) {
+                    disconnectBtn.addEventListener('click', () => this.disconnect());
+                }
+                
+                const talkBtn = document.getElementById('talkButton');
+                if (talkBtn) {
+                    talkBtn.addEventListener('mousedown', () => this.startRecording());
+                    talkBtn.addEventListener('mouseup', () => this.stopRecording());
+                    talkBtn.addEventListener('mouseleave', () => this.stopRecording());
+                    talkBtn.addEventListener('touchstart', (e) => {
+                        e.preventDefault();
+                        this.startRecording();
+                    });
+                    talkBtn.addEventListener('touchend', (e) => {
+                        e.preventDefault();
+                        this.stopRecording();
+                    });
+                }
+                
+                const phoneInput = document.getElementById('friendPhone');
+                if (phoneInput) {
+                    phoneInput.addEventListener('input', (e) => {
+                        this.state.friendPhone = e.target.value.replace(/\D/g, '');
+                        e.target.value = this.state.friendPhone;
+                    });
+                }
+                
+                const installBtn = document.getElementById('installBtn');
+                if (installBtn) {
+                    installBtn.addEventListener('click', () => this.installApp());
+                }
+                
+                const settingsBtn = document.getElementById('settingsBtn');
+                if (settingsBtn) {
+                    settingsBtn.addEventListener('click', () => {
+                        this.state.showSettings = !this.state.showSettings;
+                        this.render();
+                    });
+                }
+                
+                const clearBtn = document.getElementById('clearMessages');
+                if (clearBtn) {
+                    clearBtn.addEventListener('click', () => this.clearMessages());
+                }
+                
+                const volumeSlider = document.getElementById('volumeSlider');
+                if (volumeSlider) {
+                    volumeSlider.addEventListener('input', (e) => {
+                        this.state.volume = Number(e.target.value);
+                        document.getElementById('volumeValue').textContent = this.state.volume + '%';
+                    });
+                }
+                
+                const qualitySelect = document.getElementById('qualitySelect');
+                if (qualitySelect) {
+                    qualitySelect.addEventListener('change', (e) => {
+                        this.state.quality = e.target.value;
+                    });
+                }
+                
+                const requestMicBtn = document.getElementById('requestMic');
+                if (requestMicBtn) {
+                    requestMicBtn.addEventListener('click', () => this.requestMicrophoneAccess());
+                }
+                
+                const closeErrorBtn = document.getElementById('closeError');
+                if (closeErrorBtn) {
+                    closeErrorBtn.addEventListener('click', () => {
+                        this.state.error = null;
+                        this.render();
+                    });
+                }
+            }
+            
+            getHTML() {
+                return `
+                    <div class="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 p-4">
+                        <div class="max-w-md mx-auto">
+                            ${this.renderHeader()}
+                            ${this.state.error ? this.renderError() : ''}
+                            ${this.state.showSettings && this.state.isConnected ? this.renderSettings() : ''}
+                            ${this.state.showSetup ? this.renderSetup() : this.renderCommunication()}
+                            ${this.renderFooter()}
+                        </div>
+                    </div>
+                `;
+            }
+            
+            renderError() {
+                return `
+                    <div class="bg-red-500/10 border border-red-500/50 rounded-xl p-4 m-4 flex items-start gap-3">
+                        <div class="text-red-400 w-5 h-5">${icons.AlertCircle}</div>
+                        <div class="flex-1">
+                            <p class="text-red-300 text-sm font-medium">Błąd</p>
+                            <p class="text-red-200 text-xs mt-1">${this.state.error}</p>
+                        </div>
+                        <button id="closeError" class="text-red-400 hover:text-red-300">
+                            <div class="w-4 h-4">${icons.X}</div>
+                        </button>
+                    </div>
+                `;
+            }
+            
+            renderSettings() {
+                return `
+                    <div class="bg-slate-800/50 backdrop-blur-sm p-6 border-b border-purple-500/30">
+                        <h3 class="text-white font-semibold mb-4">⚙️ Ustawienia</h3>
+                        <div class="space-y-4">
+                            <div>
+                                <label class="text-gray-300 text-sm mb-2 block">
+                                    Głośność: <span id="volumeValue">${this.state.volume}%</span>
+                                </label>
+                                <input id="volumeSlider" type="range" min="0" max="100" value="${this.state.volume}" class="w-full">
+                            </div>
+                            <div>
+                                <label class="text-gray-300 text-sm mb-2 block">Jakość nagrania</label>
+                                <select id="qualitySelect" class="w-full bg-slate-600/50 text-white px-4 py-2 rounded-lg">
+                                    <option value="high" ${this.state.quality === 'high' ? 'selected' : ''}>Wysoka (128 kbps)</option>
+                                    <option value="medium" ${this.state.quality === 'medium' ? 'selected' : ''}>Średnia (64 kbps)</option>
+                                </select>
+                            </div>
+                            <button id="clearMessages" class="w-full bg-red-500/20 hover:bg-red-500/30 text-red-400 py-2 rounded-lg transition">
+                                Wyczyść historię
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            renderHeader() {
+                return `
+                    <div class="bg-slate-800/50 backdrop-blur-sm rounded-t-3xl p-6 border-b border-purple-500/30">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-3">
+                                <div class="text-purple-400 w-8 h-8">${icons.Radio}</div>
+                                <div>
+                                    <h1 class="text-2xl font-bold text-white">Walkie-Talkie Pro</h1>
+                                    <p class="text-xs text-gray-400">ID: ${this.state.myId}</p>
+                                </div>
+                            </div>
+                            <div class="flex gap-2">
+                                <button id="installBtn" class="p-2 bg-purple-500/20 hover:bg-purple-500/30 rounded-full transition">
+                                    <div class="text-purple-400 w-5 h-5">${icons.Download}</div>
+                                </button>
+                                ${this.state.isConnected ? `
+                                    <button id="settingsBtn" class="p-2 bg-blue-500/20 hover:bg-blue-500/30 rounded-full transition">
+                                        <div class="text-blue-400 w-5 h-5">${icons.Settings}</div>
+                                    </button>
+                                    <button id="disconnect" class="p-2 bg-red-500/20 hover:bg-red-500/30 rounded-full transition">
+                                        <div class="text-red-400 w-5 h-5">${icons.X}</div>
+                                    </button>
+                                ` : ''}
+                            </div>
+                        </div>
+                        
+                        ${this.state.isConnected ? `
+                            <div class="mt-4 space-y-2">
+                                <div class="flex items-center gap-2 text-green-400 text-sm">
+                                    <div class="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+                                    Połączono ${this.state.connectionMethod === 'bluetooth' ? 'przez Bluetooth' : `z ${this.state.friendPhone}`}
+                                </div>
+                                <div class="text-xs text-gray-400">ID sesji: ${this.state.friendId}</div>
+                            </div>
+                        ` : ''}
+                        
+                        <div class="mt-4 flex items-center gap-2">
+                            <div class="w-2 h-2 rounded-full ${
+                                this.state.micPermission === 'granted' ? 'bg-green-500' :
+                                this.state.micPermission === 'denied' ? 'bg-red-500' : 'bg-yellow-500'
+                            }"></div>
+                            <span class="text-xs text-gray-400">
+                                Mikrofon: ${
+                                    this.state.micPermission === 'granted' ? '✓ Dostępny' :
+                                    this.state.micPermission === 'denied' ? '✗ Brak dostępu' : '? Nie sprawdzono'
+                                }
+                            </span>
+                            ${this.state.micPermission !== 'granted' ? `
+                                <button id="requestMic" class="text-xs text-blue-400 hover:text-blue-300 underline">Włącz</button>
+                            ` : ''}
+                        </div>
+                    </div>
+                `;
+            }
+            
+            renderSetup() {
+                return `
+                    <div class="bg-slate-800/50 backdrop-blur-sm p-6 space-y-6">
+                        <div>
+                            <h2 class="text-xl font-semibold text-white mb-4 flex items-center gap-2">
+                                <div class="w-5 h-5">${icons.Users}</div>
+                                Połącz się z przyjaciółką
+                            </h2>
+                            
+                            <div class="bg-slate-700/50 rounded-2xl p-4 mb-4">
+                                <div class="flex items-center gap-3 mb-3">
+                                    <div class="text-blue-400 w-5 h-5">${icons.Phone}</div>
+                                    <h3 class="text-white font-medium">Przez numer telefonu</h3>
+                                </div>
+                                <p class="text-gray-400 text-xs mb-3">Połączenie przez serwer (wymaga internetu)</p>
+                                <input id="friendPhone" type="tel" placeholder="Wpisz numer telefonu" value="${this.state.friendPhone}" class="w-full bg-slate-600/50 text-white px-4 py-3 rounded-xl mb-3 outline-none focus:ring-2 focus:ring-blue-500">
+                                <button id="connectPhone" class="w-full bg-blue-500 hover:bg-blue-600 text-white font-semibold py-3 rounded-xl transition flex items-center justify-center gap-2">
+                                    <div class="w-4 h-4">${icons.Wifi}</div>
+                                    Połącz przez Internet
+                                </button>
+                            </div>
+                            
+                            <div class="bg-slate-700/50 rounded-2xl p-4">
+                                <div class="flex items-center gap-3 mb-3">
+                                    <div class="text-purple-400 w-5 h-5">${icons.Bluetooth}</div>
+                                    <h3 class="text-white font-medium">Przez Bluetooth</h3>
+                                </div>
+                                <p class="text-gray-400 text-xs mb-3">Połączenie lokalne (max ~10m, bez internetu)</p>
+                                <button id="connectBluetooth" class="w-full bg-purple-500 hover:bg-purple-600 text-white font-semibold py-3 rounded-xl transition">
+                                    Szukaj urządzeń Bluetooth
+                                </button>
+                            </div>
+                            
+                            <div class="bg-green-500/10 border border-green-500/30 rounded-2xl p-4 mt-4">
+                                <h3 class="text-green-400 font-semibold mb-2 flex items-center gap-2">
+                                    <div class="w-4 h-4">${icons.CheckCircle}</div>
+                                    Jak to działa?
+                                </h3>
+                                <ul class="text-gray-300 text-sm space-y-1 list-disc list-inside">
+                                    <li>Ty i przyjaciółka otwieracie tę stronę</li>
+                                    <li>Wybieracie ten sam sposób połączenia</li>
+                                    <li>Przytrzymujcie mikrofon aby mówić</li>
+                                    <li>Puśćcie aby wysłać wiadomość</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            renderCommunication() {
+                return `
+                    <div class="bg-slate-800/50 backdrop-blur-sm p-6">
+                        <div class="bg-slate-900/50 rounded-2xl p-4 h-64 overflow-y-auto mb-6 scrollbar-thin">
+                            ${this.state.messages.length === 0 ? `
+                                <div class="flex flex-col items-center justify-center h-full text-gray-500 text-center">
+                                    <div class="text-gray-600 mb-2 w-12 h-12">${icons.Radio}</div>
+                                    <p>Przytrzymaj mikrofon aby nagrać</p>
+                                    <p class="text-xs mt-2">Maksymalnie 60 sekund</p>
+                                </div>
+                            ` : `
+                                <div class="space-y-2">
+                                    ${this.state.messages.map(msg => `
+                                        <div class="p-3 rounded-lg ${
+                                            msg.type === 'system' ? 'bg-purple-500/20 text-purple-300' :
+                                            msg.type === 'sending' ? 'bg-blue-500/20 text-blue-300' :
+                                            msg.type === 'sent' ? 'bg-green-500/20 text-green-300' :
+                                            msg.type === 'receiving' ? 'bg-orange-500/20 text-orange-300' :
+                                            'bg-cyan-500/20 text-cyan-300'
+                                        }">
+                                            <div class="text-sm whitespace-pre-line">${msg.text}</div>
+                                            <div class="text-xs opacity-60 mt-1">${msg.time}</div>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            `}
+                        </div>
+                        
+                        ${this.state.isListening ? `
+                            <div class="bg-orange-500/20 border border-orange-500/50 rounded-xl p-4 mb-4 flex items-center gap-3">
+                                <div class="text-orange-400 w-6 h-6 animate-pulse">${icons.Volume2}</div>
+                                <span class="text-orange-300 font-medium">Odbierasz wiadomość...</span>
+                            </div>
+                        ` : ''}
+                        
+                        ${this.state.isTalking ? `
+                            <div class="mb-4">
+                                <div class="flex items-center justify-between text-sm text-gray-400 mb-2">
+                                    <span>Poziom dźwięku</span>
+                                    <span>${this.state.recordingTime}s / 60s</span>
+                                </div>
+                                <div class="h-2 bg-slate-700 rounded-full overflow-hidden">
+                                    <div class="h-full bg-gradient-to-r from-green-500 to-red-500 transition-all duration-100" style="width: ${this.state.audioLevel}%"></div>
+                                </div>
+                            </div>
+                        ` : ''}
+                        
+                        <div class="flex flex-col items-center">
+                            <button id="talkButton" ${this.state.micPermission === 'denied' ? 'disabled' : ''} class="w-40 h-40 rounded-full flex flex-col items-center justify-center transition-all duration-200 select-none touch-none ${
+                                this.state.micPermission === 'denied' ? 'bg-gray-600 opacity-50 cursor-not-allowed' :
+                                this.state.isTalking ? 'bg-red-500 shadow-2xl shadow-red-500/50 scale-110' :
+                                'bg-gradient-to-br from-green-500 to-green-600 shadow-xl shadow-green-500/30 hover:scale-105 active:scale-110'
+                            }">
+                                ${this.state.isTalking ? `
+                                    <div class="text-white w-16 h-16 mb-2 animate-pulse">${icons.Mic}</div>
+                                    <span class="text-white text-sm font-bold">${this.state.recordingTime}s</span>
+                                ` : `
+                                    <div class="text-white w-20 h-20">${icons.Mic}</div>
+                                `}
+                            </button>
+                            
+                            <p class="text-white text-center mt-6 font-medium">
+                                ${this.state.micPermission === 'denied' ? 
+                                    '<span class="text-red-400">✗ Brak dostępu do mikrofonu</span>' :
+                                    this.state.isTalking ? 
+                                    '<span class="text-red-400 text-lg">🔴 NAGRYWANIE</span>' :
+                                    '<span class="text-green-400">Przytrzymaj aby nagrać</span>'
+                                }
+                            </p>
+                            
+                            ${this.state.isTalking ? '<p class="text-gray-400 text-xs mt-2">Puść przycisk aby wysłać</p>' : ''}
+                        </div>
+                    </div>
+                `;
+            }
+            
+            renderFooter() {
+                return `
+                    <div class="bg-slate-800/50 backdrop-blur-sm rounded-b-3xl p-4 text-center space-y-2">
+                        <p class="text-gray-400 text-sm">💡 Przytrzymaj mikrofon podczas mówienia (max 60s)</p>
+                        <p class="text-gray-500 text-xs">🌐 Hostuj za darmo na GitHub Pages</p>
+                        <p class="text-gray-600 text-xs">v1.0 | Vanilla JS + Web Audio API</p>
+                    </div>
+                `;
+            }
+        }
+        
+        // Inicjalizacja aplikacji
+        new WalkieTalkieApp();
+    </script>
+</body>
+</html>
